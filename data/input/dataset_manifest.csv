@@ -1,0 +1,8 @@
+dataset,rows,notes
+ocr_claims.csv,200,"60 good, 140 noisy, 180 unique claims, 20 duplicate scans"
+dim_policy.csv,250,"active, expired, inactive, duplicate policy numbers, unused rows"
+dim_member.csv,240,member reference rows
+dim_provider.csv,120,"in-network, out-of-network, inactive, duplicate NPI, invalid rows"
+dim_plan_coverage.csv,500,10 plans x 50 procedure codes
+fact_claims.csv,1000,historical claims for window and duplicate analysis
+fact_pre_authorization.csv,300,"approved, pending, denied, cancelled, expired"
