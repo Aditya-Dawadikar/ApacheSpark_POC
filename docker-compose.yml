@@ -1,0 +1,13 @@
+services:
+  spark-job:
+    build: .
+    image: spark-dag:latest
+    environment:
+      SPARK_APP_NAME: spark-app
+      SPARK_MASTER: local[*]
+      INPUT_PATH: /app/data/input
+      OUTPUT_PATH: /app/data/output
+      OUTPUT_FORMAT: parquet
+    volumes:
+      - ./data:/app/data
+    # command: ["--job", "my_job"]
