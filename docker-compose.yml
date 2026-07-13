@@ -41,4 +41,7 @@ services:
       - ./data:/app/data
     ports:
       - "4040:4040"  # Driver/application UI — live job, stage, and task progress
-    command: ["--job", "job_01"]
+    # "all" runs Job 1 through Job 6 in sequence in one invocation; pass
+    # `--job job_03` (etc.) to run a single job against the previous job's
+    # already-written output instead.
+    command: ["--job", "all"]

@@ -77,7 +77,7 @@ def _parse_codes(col_name: str):
     """Split and normalize delimited diagnosis/procedure code strings."""
     raw = F.upper(F.trim(F.coalesce(F.col(col_name), F.lit(""))))
     raw = F.when(raw.isin(*_NULL_LITERAL_CODES), F.lit("")).otherwise(raw)
-    cleaned = F.regexp_replace(raw, r"[;,]", "|")
+    cleaned = F.regexp_replace(raw, r"[;,\r\n]+", "|")
     parts = F.split(cleaned, r"\|")
     normalized = F.transform(parts, lambda x: F.trim(x))
     non_blank = F.filter(normalized, lambda x: x.isNotNull() & (x != ""))
