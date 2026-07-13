@@ -166,6 +166,13 @@ don't need `winutils`.
 
 ## Configuration
 
+Copy `.env.example` to `.env` and adjust values as needed — `docker-compose.yml` loads it
+automatically for the `spark-worker` and `spark-job` services (`env_file: .env`). `.env`
+is gitignored so local tweaks don't get committed; `.env.example` is the tracked template.
+Settings that reference other compose services by hostname (`SPARK_MASTER`,
+`SPARK_DRIVER_HOST`, `INPUT_PATH`, `OUTPUT_PATH`) stay hardcoded directly in
+`docker-compose.yml` instead, since those aren't meant to be casually edited.
+
 All settings are environment variables with defaults (see `src/spark_app/config.py`):
 
 | Variable                  | Default        | Meaning                          |
@@ -177,6 +184,23 @@ All settings are environment variables with defaults (see `src/spark_app/config.
 | `OUTPUT_PATH`               | `data/output`   | Output path                      |
 | `OUTPUT_FORMAT`             | `parquet`        | Output format (`csv` in `docker-compose.yml`) |
 | `SPARK_SHUFFLE_PARTITIONS`  | `4`               | `spark.sql.shuffle.partitions`   |
+| `SPARK_EXECUTOR_CORES`      | `1`               | Cores per executor (`spark.executor.cores`) |
+| `SPARK_EXECUTOR_MEMORY`     | `1g`              | Memory per executor (`spark.executor.memory`) |
+| `SPARK_CORES_MAX`           | `4`               | Total cores this app requests cluster-wide (`spark.cores.max`) |
+| `SPARK_WORKER_CORES`        | `4`               | Total cores the `spark-worker` container offers to the cluster |
+| `SPARK_WORKER_MEMORY`       | `4g`              | Total memory the `spark-worker` container offers to the cluster |
+
+### Executor sizing
+
+In standalone mode there's no direct "number of executors" setting — Spark derives it as
+`SPARK_CORES_MAX / SPARK_EXECUTOR_CORES`. The defaults above give **up to 4 executors of
+1 core / 1g each**, and `SPARK_WORKER_CORES`/`SPARK_WORKER_MEMORY` size `spark-worker` to
+exactly fit all 4 on the one worker (the `Worker` process picks these up itself as a
+fallback when no `--cores`/`--memory` flag is given). To change the split (e.g. 2
+executors of 2 cores each instead of 4 of 1), keep `SPARK_CORES_MAX` fixed and change
+`SPARK_EXECUTOR_CORES` — just make sure `SPARK_WORKER_CORES`/`SPARK_WORKER_MEMORY` can
+actually supply what you're requesting, and add more `spark-worker` replicas if you want
+executors spread across multiple machines instead of packed onto one.
 
 ### Running tests
 

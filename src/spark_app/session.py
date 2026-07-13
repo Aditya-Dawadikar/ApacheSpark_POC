@@ -11,6 +11,9 @@ def get_spark_session() -> SparkSession:
         .master(settings.master)
         .config("spark.sql.shuffle.partitions", settings.shuffle_partitions)
         .config("spark.sql.legacy.timeParserPolicy", "CORRECTED")
+        .config("spark.executor.cores", settings.executor_cores)
+        .config("spark.executor.memory", settings.executor_memory)
+        .config("spark.cores.max", settings.cores_max)
     )
 
     if settings.driver_host:

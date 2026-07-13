@@ -8,3 +8,5 @@ data/output/*
 !data/output/.gitkeep
 
 .vscode/
+
+.env

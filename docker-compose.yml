@@ -12,7 +12,10 @@ services:
     build: .
     image: spark-dag:latest
     entrypoint: []
+    # No --cores/--memory flags: the Worker process falls back to the
+    # SPARK_WORKER_CORES/SPARK_WORKER_MEMORY env vars from .env below.
     command: ["spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077", "--webui-port", "8081"]
+    env_file: .env
     depends_on:
       - spark-master
     volumes:
@@ -30,13 +33,14 @@ services:
     depends_on:
       - spark-master
       - spark-worker
+    env_file: .env
     environment:
-      SPARK_APP_NAME: spark-app
+      # Compose topology wiring — leave these here rather than in .env, since
+      # they reference other services by their compose-assigned hostnames.
       SPARK_MASTER: spark://spark-master:7077
       SPARK_DRIVER_HOST: spark-job
       INPUT_PATH: /app/data/input
       OUTPUT_PATH: /app/data/output
-      OUTPUT_FORMAT: csv
     volumes:
       - ./data:/app/data
     ports:

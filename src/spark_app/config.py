@@ -14,5 +14,13 @@ class Settings:
     shuffle_partitions: str = os.environ.get("SPARK_SHUFFLE_PARTITIONS", "4")
     driver_host: str = os.environ.get("SPARK_DRIVER_HOST", "")
 
+    # Executor sizing (standalone mode). Executor count is derived by Spark as
+    # cores_max / executor_cores, not set directly - defaults below give 4
+    # executors of 1 core / 1g each, matching the spark-worker capacity set in
+    # docker-compose.yml.
+    executor_cores: str = os.environ.get("SPARK_EXECUTOR_CORES", "1")
+    executor_memory: str = os.environ.get("SPARK_EXECUTOR_MEMORY", "1g")
+    cores_max: str = os.environ.get("SPARK_CORES_MAX", "4")
+
 
 settings = Settings()
