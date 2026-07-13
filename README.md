@@ -128,6 +128,13 @@ a `/d/...`-style path can get mistranslated and silently mount the wrong locatio
 | `spark-worker` | Long-running worker, registers with the master     | http://localhost:8081 (this worker's executors and logs) |
 | `spark-job`    | Short-lived — submits one job run, then exits      | http://localhost:4040 (live stage/task progress, only while a job is running) |
 
+`spark-worker` and `spark-job` both mount `./data:/app/data`. This isn't optional: in
+standalone cluster mode, executors run inside the `spark-worker` container, not the
+driver — so `spark-worker` needs the same live host mount as `spark-job`, or executors
+silently read/write against the stale copy of `data/` baked into the image at build time
+instead of your actual host files (the job still reports success; the output just never
+reaches your host).
+
 Start the cluster once and leave it running:
 
 ```bash

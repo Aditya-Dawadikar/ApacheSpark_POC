@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from pyspark.sql import DataFrame, SparkSession, Window
 from pyspark.sql import functions as F
 from pyspark.sql import types as T
@@ -9,6 +11,8 @@ from pyspark.sql import types as T
 from spark_app.config import settings
 from spark_app.io_utils import write_output
 from spark_app.session import get_spark_session
+
+logger = logging.getLogger(__name__)
 
 OCR_COLUMNS = [
     "source_document_id",
@@ -348,14 +352,32 @@ def run() -> None:
     """Run Job 1 end-to-end and persist canonical claims."""
     spark = get_spark_session()
     try:
+        logger.info("Job 1 starting: reading OCR input from %s", settings.input_path)
         raw = _read_raw_ocr(spark, settings.input_path)
+        raw_count = raw.count()
+        logger.info("Read %d raw OCR documents", raw_count)
+
         norm = _normalize(raw)
         valid = _validate(norm)
+        invalid_count = valid.filter(~F.col("is_valid_record")).count()
+        logger.info(
+            "Validated documents: %d/%d failed at least one check",
+            invalid_count,
+            raw_count,
+        )
+
         with_pii = _pii(valid)
+        pii_count = with_pii.filter(F.col("pii_detected")).count()
+        logger.info("PII scan complete: %d documents flagged", pii_count)
+
         canonical = _canonicalize(with_pii)
         final_df = _select_job1_schema(canonical)
+        final_count = final_df.count()
+        logger.info("Canonicalized %d documents into %d unique claims", raw_count, final_count)
 
         output_path = f"{settings.output_path}/canonical_claims"
+        logger.info("Writing output to %s (format=%s)", output_path, settings.output_format)
         write_output(final_df, output_path, settings.output_format)
+        logger.info("Job 1 complete: %d canonical claims written to %s", final_count, output_path)
     finally:
         spark.stop()

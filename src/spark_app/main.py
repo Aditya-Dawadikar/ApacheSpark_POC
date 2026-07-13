@@ -1,6 +1,7 @@
 """CLI entry point. Add new jobs under spark_app/jobs, then register them in JOBS below."""
 
 import argparse
+import logging
 
 from spark_app.jobs.job_01 import run as job_01_run
 
@@ -10,6 +11,8 @@ JOBS = {
 
 
 def main() -> None:
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+
     parser = argparse.ArgumentParser(description="Run a Spark data processing job")
     parser.add_argument(
         "--job",

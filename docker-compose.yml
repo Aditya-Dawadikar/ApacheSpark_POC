@@ -15,6 +15,11 @@ services:
     command: ["spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077", "--webui-port", "8081"]
     depends_on:
       - spark-master
+    volumes:
+      # Executors run inside this container, so it needs the same host mount
+      # as spark-job — otherwise executors read/write against the image's
+      # stale baked-in copy of data/ instead of the live host directory.
+      - ./data:/app/data
     ports:
       - "8081:8081"  # Worker web UI — this worker's executors and logs
 
@@ -31,7 +36,7 @@ services:
       SPARK_DRIVER_HOST: spark-job
       INPUT_PATH: /app/data/input
       OUTPUT_PATH: /app/data/output
-      OUTPUT_FORMAT: parquet
+      OUTPUT_FORMAT: csv
     volumes:
       - ./data:/app/data
     ports:
