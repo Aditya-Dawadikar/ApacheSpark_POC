@@ -12,6 +12,7 @@ class Settings:
     output_path: str = os.environ.get("OUTPUT_PATH", "data/output")
     output_format: str = os.environ.get("OUTPUT_FORMAT", "parquet")
     shuffle_partitions: str = os.environ.get("SPARK_SHUFFLE_PARTITIONS", "4")
+    driver_host: str = os.environ.get("SPARK_DRIVER_HOST", "")
 
 
 settings = Settings()

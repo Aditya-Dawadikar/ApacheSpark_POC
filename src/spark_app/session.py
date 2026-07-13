@@ -6,9 +6,17 @@ from spark_app.config import settings
 
 
 def get_spark_session() -> SparkSession:
-    return (
+    builder = (
         SparkSession.builder.appName(settings.app_name)
         .master(settings.master)
         .config("spark.sql.shuffle.partitions", settings.shuffle_partitions)
-        .getOrCreate()
+        .config("spark.sql.legacy.timeParserPolicy", "CORRECTED")
     )
+
+    if settings.driver_host:
+        # Lets workers on a standalone cluster connect back to this driver by
+        # a stable hostname (e.g. the docker-compose service name) instead of
+        # whatever address Spark would otherwise auto-detect for the container.
+        builder = builder.config("spark.driver.host", settings.driver_host)
+
+    return builder.getOrCreate()

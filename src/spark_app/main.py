@@ -2,8 +2,10 @@
 
 import argparse
 
+from spark_app.jobs.job_01 import run as job_01_run
+
 JOBS = {
-    # "my_job": my_job.run,
+    "job_01": job_01_run,
 }
 
 

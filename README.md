@@ -104,8 +104,10 @@ containers don't need `winutils`.
 
 ## Running with Docker
 
-Build the image and run a job in a container (Spark runs in local mode inside the
-container — no separate cluster needed):
+There are two ways to run jobs in Docker: a one-shot container (spins up, runs, exits),
+or a persistent Spark standalone cluster you can watch jobs run against in the Spark UI.
+
+### One-shot (no cluster, no UI to watch progress in)
 
 ```bash
 docker build -t spark-dag:latest .
@@ -116,11 +118,36 @@ On Windows, prefer Docker Compose or a native Windows-style path for the volume 
 (`-v "D:\path\to\SparkDAG\data:/app/data"`) — running `docker run -v` from Git Bash with
 a `/d/...`-style path can get mistranslated and silently mount the wrong location.
 
-Or with Docker Compose, which also mounts `./data` so output lands on your host.
-Uncomment and set the `command:` in `docker-compose.yml` once you've added a job, then:
+### Persistent cluster (watch job progress in the Spark UI)
+
+`docker-compose.yml` defines three services:
+
+| Service        | Role                                              | UI                              |
+|----------------|----------------------------------------------------|----------------------------------|
+| `spark-master` | Long-running standalone master                    | http://localhost:8080 (cluster status, workers, running/completed apps) |
+| `spark-worker` | Long-running worker, registers with the master     | http://localhost:8081 (this worker's executors and logs) |
+| `spark-job`    | Short-lived — submits one job run, then exits      | http://localhost:4040 (live stage/task progress, only while a job is running) |
+
+Start the cluster once and leave it running:
 
 ```bash
-docker compose up --build
+docker compose up -d spark-master spark-worker
 ```
 
-Output will appear under `data/output/` on your host machine.
+Open http://localhost:8080 — you should see 1 worker registered and `ALIVE`. Then submit
+job runs against it as many times as you like; the master/worker stay up between runs:
+
+```bash
+docker compose run --rm spark-job --job <name>
+```
+
+While a run is in progress, open http://localhost:4040 for the live Spark application UI
+(jobs, stages, tasks). After it finishes, the master's UI at :8080 keeps a record of it
+under "Completed Applications" (state `FINISHED`), and output lands under `data/output/`
+on your host as usual.
+
+Bring the cluster down when you're done:
+
+```bash
+docker compose down
+```
