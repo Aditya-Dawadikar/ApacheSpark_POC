@@ -36,6 +36,8 @@ OCR_COLUMNS = [
     "noise_type",
 ]
 
+CONFIDENCE_THRESHOLD = 0.75
+
 
 def _read_raw_ocr(spark: SparkSession, input_root: str) -> DataFrame:
     """Read OCR input as all-string columns and add ingestion metadata."""
@@ -173,7 +175,7 @@ def _validate(df: DataFrame) -> DataFrame:
             F.when(F.col("billed_amount_parsed") < 0, F.lit("NEGATIVE_BILLED_AMOUNT")),
             F.when(F.col("currency_normalized").isNotNull() & (~F.col("currency_normalized").isin("USD")), F.lit("UNSUPPORTED_CURRENCY")),
             F.when(F.col("ocr_confidence_parsed").isNull(), F.lit("INVALID_OCR_CONFIDENCE")),
-            F.when(F.col("ocr_confidence_parsed") < F.lit(0.80), F.lit("LOW_OCR_CONFIDENCE")),
+            F.when(F.col("ocr_confidence_parsed") < F.lit(CONFIDENCE_THRESHOLD), F.lit("LOW_OCR_CONFIDENCE")),
             F.when(F.lower(F.coalesce(F.col("noise_type"), F.lit(""))).contains("unreadable"), F.lit("UNREADABLE_DOCUMENT")),
             F.when(
                 F.col("policy_number_normalized").isin(*header_label_values)

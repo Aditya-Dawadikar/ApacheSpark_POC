@@ -10,6 +10,7 @@ def read_csv(spark: SparkSession, path: str) -> DataFrame:
         spark.read.option("header", True)
         .option("inferSchema", True)
         .option("multiLine", True)
+        .option("escape", '"')
         .csv(path)
     )
 
@@ -20,7 +21,7 @@ def write_output(df: DataFrame, path: str, fmt: str = "parquet") -> None:
         # CSV has no array type; join array columns into a delimited string
         # instead so the output stays inspectable (and doesn't just error out).
         df = _stringify_array_columns(df)
-        writer = df.write.mode("overwrite").option("header", True)
+        writer = df.write.mode("overwrite").option("header", True).option("escape", '"')
     writer.format(fmt).save(path)
 
 
