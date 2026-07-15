@@ -1,0 +1,76 @@
+{
+  "title": "SparkDAG - Cluster & Resource Utilization",
+  "uid": "sparkdag-cluster-resources",
+  "schemaVersion": 39,
+  "editable": true,
+  "refresh": "10s",
+  "time": { "from": "now-30m", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Container CPU usage",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (name) (rate(container_cpu_usage_seconds_total{name=~\"spark-master|spark-worker|.*spark-job.*\"}[1m]))",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit" }, "overrides": [] }
+    },
+    {
+      "id": 2,
+      "title": "Container memory usage",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "container_memory_usage_bytes{name=~\"spark-master|spark-worker|.*spark-job.*\"}",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] }
+    },
+    {
+      "id": 3,
+      "title": "Spark worker cores used vs total",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "metrics_worker_coresUsed_Value", "legendFormat": "cores used" },
+        { "expr": "metrics_worker_coresUsed_Value + metrics_worker_coresFree_Value", "legendFormat": "cores total" }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Spark worker memory used vs total",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "metrics_worker_memUsed_MB_Value", "legendFormat": "MB used" },
+        { "expr": "metrics_worker_memUsed_MB_Value + metrics_worker_memFree_MB_Value", "legendFormat": "MB total" }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Alive workers registered with master",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "metrics_master_aliveWorkers_Value" }]
+    },
+    {
+      "id": 6,
+      "title": "Running executors on worker",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "metrics_worker_executors_Value" }]
+    }
+  ]
+}

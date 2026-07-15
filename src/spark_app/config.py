@@ -22,5 +22,10 @@ class Settings:
     executor_memory: str = os.environ.get("SPARK_EXECUTOR_MEMORY", "1g")
     cores_max: str = os.environ.get("SPARK_CORES_MAX", "4")
 
+    # Observability (see spark_app/observability/)
+    pushgateway_url: str = os.environ.get("PUSHGATEWAY_URL", "http://pushgateway:9091")
+    otel_exporter_endpoint: str = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "http://tempo:4318")
+    spark_driver_ui_url: str = os.environ.get("SPARK_DRIVER_UI_URL", "http://localhost:4040")
+
 
 settings = Settings()

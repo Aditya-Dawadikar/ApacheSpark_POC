@@ -33,6 +33,8 @@ services:
     depends_on:
       - spark-master
       - spark-worker
+      - pushgateway
+      - tempo
     env_file: .env
     environment:
       # Compose topology wiring — leave these here rather than in .env, since
@@ -41,6 +43,8 @@ services:
       SPARK_DRIVER_HOST: spark-job
       INPUT_PATH: /app/data/input
       OUTPUT_PATH: /app/data/output
+      PUSHGATEWAY_URL: http://pushgateway:9091
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo:4318
     volumes:
       - ./data:/app/data
     ports:
@@ -49,3 +53,69 @@ services:
     # `--job job_03` (etc.) to run a single job against the previous job's
     # already-written output instead.
     command: ["--job", "all"]
+
+  # --- Observability stack (Prometheus / Grafana / Loki / Tempo) ---
+  # Start with: docker compose up -d spark-master spark-worker prometheus
+  # pushgateway grafana loki promtail tempo cadvisor. See README.md.
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"  # Prometheus UI/API — check http://localhost:9090/targets
+
+  pushgateway:
+    image: prom/pushgateway:v1.9.0
+    ports:
+      - "9091:9091"  # Receives metrics pushed by spark_app.observability.metrics at job teardown
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    privileged: true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    ports:
+      - "8082:8080"  # Container CPU/memory/network utilization
+
+  loki:
+    image: grafana/loki:3.1.1
+    command: ["-config.file=/etc/loki/loki-config.yml"]
+    volumes:
+      - ./observability/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+    ports:
+      - "3100:3100"
+
+  promtail:
+    image: grafana/promtail:3.1.1
+    command: ["-config.file=/etc/promtail/promtail-config.yml"]
+    volumes:
+      - ./observability/promtail/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    depends_on:
+      - loki
+
+  tempo:
+    image: grafana/tempo:2.6.1
+    command: ["-config.file=/etc/tempo/tempo.yml"]
+    volumes:
+      - ./observability/tempo/tempo.yml:/etc/tempo/tempo.yml:ro
+    ports:
+      - "3200:3200"  # Tempo query API (used by Grafana)
+
+  grafana:
+    image: grafana/grafana:11.2.2
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/etc/grafana/dashboards:ro
+    ports:
+      - "3000:3000"  # Grafana UI — dashboards under the "SparkDAG" folder
+    depends_on:
+      - prometheus
+      - loki
+      - tempo

@@ -1,7 +1,6 @@
 """CLI entry point. Add new jobs under spark_app/jobs, then register them in JOBS below."""
 
 import argparse
-import logging
 
 from spark_app.jobs.job_01 import run as job_01_run
 from spark_app.jobs.job_02 import run as job_02_run
@@ -9,6 +8,7 @@ from spark_app.jobs.job_03 import run as job_03_run
 from spark_app.jobs.job_04 import run as job_04_run
 from spark_app.jobs.job_05 import run as job_05_run
 from spark_app.jobs.job_06 import run as job_06_run
+from spark_app.observability import logging_setup, tracing
 from spark_app.pipeline import run_all
 
 JOBS = {
@@ -23,7 +23,7 @@ JOBS = {
 
 
 def main() -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    logging_setup.configure()
 
     parser = argparse.ArgumentParser(description="Run a Spark data processing job")
     parser.add_argument(
@@ -34,7 +34,15 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    JOBS[args.job]()
+    try:
+        if args.job == "all":
+            # run_all() opens its own per-job spans (see pipeline.py).
+            JOBS[args.job]()
+        else:
+            with tracing.job_span(args.job):
+                JOBS[args.job]()
+    finally:
+        tracing.shutdown()
 
 
 if __name__ == "__main__":

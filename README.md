@@ -45,6 +45,7 @@ SparkDAG/
 │       ├── config.py          # Settings, read from env vars with defaults
 │       ├── session.py         # SparkSession construction
 │       ├── io_utils.py        # Read/write helpers, incl. CSV array/type round-tripping
+│       ├── observability/     # JSON logging, OTel tracing, Pushgateway metrics exporter
 │       └── jobs/
 │           ├── job_01.py      # OCR validation and canonicalization
 │           ├── job_02.py      # Policy/member/provider reference enrichment
@@ -55,6 +56,9 @@ SparkDAG/
 ├── data/
 │   ├── input/                  # ocr_claims.csv, dim_*.csv, fact_*.csv
 │   └── output/                  # One folder per job's output (see pipeline diagram)
+├── conf/
+│   └── metrics.properties       # Enables Spark's Prometheus metrics sink (master/worker/driver)
+├── observability/                # Prometheus/Grafana/Loki/Tempo config, see "Observability" below
 ├── SPEC.md                      # Full pipeline specification this code implements
 ├── requirements.txt              # Runtime deps (pyspark)
 ├── requirements-dev.txt          # + pytest, for local dev
@@ -164,6 +168,51 @@ download a matching `winutils.exe` for your Hadoop version, put it under
 way to sidestep this entirely: run the job via Docker instead, since Linux containers
 don't need `winutils`.
 
+## Observability
+
+The stack ships with Prometheus, Grafana, Loki, and Tempo, wired up as extra
+`docker-compose.yml` services under `observability/`. Bring it up alongside the
+cluster:
+
+```bash
+docker compose up -d spark-master spark-worker prometheus pushgateway grafana loki promtail tempo cadvisor
+docker compose run --rm spark-job --job all
+```
+
+Then open **http://localhost:3000** (Grafana, anonymous admin access for local
+use) — three provisioned dashboards live under the "SparkDAG" folder:
+
+- **Cluster & Resource Utilization** — per-container CPU/memory (cAdvisor) and
+  Spark worker cores/memory used vs capacity.
+- **JVM & GC** — master/worker JVM heap (continuous), plus per-job executor
+  heap and cumulative GC time.
+- **Pipeline Performance** — per-job duration, per-stage shuffle read/write
+  bytes, per-stage memory/disk spill bytes, and per-stage task-duration skew
+  ratio (max ÷ median task duration — the signal for data skew).
+
+Logs and traces are in Grafana's **Explore** view (Loki and Tempo
+datasources) — a log line's `trace_id` field links directly to its matching
+trace, and a trace links back to its logs.
+
+**Why two collection paths:** `spark-master`/`spark-worker` run continuously,
+so Prometheus scrapes their built-in metrics sink (`conf/metrics.properties`)
+directly. But each of the 6 jobs' driver/executors only live a few seconds —
+too short to reliably scrape — so `spark_app/observability/metrics.py`
+instead queries the Spark REST API for shuffle/spill/task-skew/JVM data right
+before each job's `SparkSession` stops, and pushes a snapshot to the
+Pushgateway (`http://localhost:9091`).
+
+**Note on metric names:** the master/worker JVM/resource panel queries use
+Spark's documented `PrometheusServlet` naming convention
+(`metrics_worker_coresUsed_Value`, etc.). If a panel comes up empty, check the
+raw output at `http://localhost:8081/metrics/worker/prometheus` (or `:8080` for
+the master) and adjust the query in
+`observability/grafana/dashboards/*.json` to match — exact metric names can
+shift slightly across Spark versions.
+
+Tear down with `docker compose down` as usual (add `-v` to also drop
+Prometheus/Loki/Tempo's local storage volumes).
+
 ## Configuration
 
 Copy `.env.example` to `.env` and adjust values as needed — `docker-compose.yml` loads it
@@ -189,6 +238,9 @@ All settings are environment variables with defaults (see `src/spark_app/config.
 | `SPARK_CORES_MAX`           | `4`               | Total cores this app requests cluster-wide (`spark.cores.max`) |
 | `SPARK_WORKER_CORES`        | `4`               | Total cores the `spark-worker` container offers to the cluster |
 | `SPARK_WORKER_MEMORY`       | `4g`              | Total memory the `spark-worker` container offers to the cluster |
+| `PUSHGATEWAY_URL`           | `http://pushgateway:9091` | Where per-job metrics (shuffle/spill/skew/JVM) are pushed |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://tempo:4318` | OTLP/HTTP endpoint traces are exported to |
+| `SPARK_DRIVER_UI_URL`       | `http://localhost:4040` | Driver's own REST API base, queried at job teardown |
 
 ### Executor sizing
 

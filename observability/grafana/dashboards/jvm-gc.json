@@ -1,0 +1,74 @@
+{
+  "title": "SparkDAG - JVM & GC",
+  "uid": "sparkdag-jvm-gc",
+  "schemaVersion": 39,
+  "editable": true,
+  "refresh": "10s",
+  "time": { "from": "now-30m", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Master/Worker JVM heap used",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "metrics_jvm_heap_used_Value{job=\"spark-master\"}", "legendFormat": "master heap used" },
+        { "expr": "metrics_jvm_heap_used_Value{job=\"spark-worker\"}", "legendFormat": "worker heap used" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] }
+    },
+    {
+      "id": 2,
+      "title": "Master/Worker JVM heap max",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "metrics_jvm_heap_max_Value{job=\"spark-master\"}", "legendFormat": "master heap max" },
+        { "expr": "metrics_jvm_heap_max_Value{job=\"spark-worker\"}", "legendFormat": "worker heap max" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] }
+    },
+    {
+      "id": 3,
+      "title": "Master/Worker G1 GC time (young + old)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "metrics_jvm_G1_Young_Generation_time_Value{job=\"spark-master\"} + metrics_jvm_G1_Old_Generation_time_Value{job=\"spark-master\"}",
+          "legendFormat": "master GC time"
+        },
+        {
+          "expr": "metrics_jvm_G1_Young_Generation_time_Value{job=\"spark-worker\"} + metrics_jvm_G1_Old_Generation_time_Value{job=\"spark-worker\"}",
+          "legendFormat": "worker GC time"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] }
+    },
+    {
+      "id": 4,
+      "title": "Per-job executor JVM heap used (pushed at job teardown)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "spark_executor_jvm_heap_used_bytes", "legendFormat": "executor {{executor_id}} ({{app_id}})" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] }
+    },
+    {
+      "id": 5,
+      "title": "Per-job executor cumulative GC time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "spark_executor_jvm_gc_time_ms", "legendFormat": "executor {{executor_id}} ({{app_id}})" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] }
+    }
+  ]
+}

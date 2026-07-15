@@ -1,0 +1,56 @@
+{
+  "title": "SparkDAG - Pipeline Performance",
+  "uid": "sparkdag-pipeline-performance",
+  "schemaVersion": 39,
+  "editable": true,
+  "refresh": "10s",
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Job duration",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "spark_job_duration_seconds", "legendFormat": "{{job_name}} ({{app_id}})" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+    },
+    {
+      "id": 2,
+      "title": "Shuffle read/write bytes by stage",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "spark_stage_shuffle_read_bytes", "legendFormat": "read: {{stage_name}} ({{stage_id}})" },
+        { "expr": "spark_stage_shuffle_write_bytes", "legendFormat": "write: {{stage_name}} ({{stage_id}})" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] }
+    },
+    {
+      "id": 3,
+      "title": "Memory/disk spill bytes by stage",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "spark_stage_memory_spill_bytes", "legendFormat": "memory: {{stage_name}} ({{stage_id}})" },
+        { "expr": "spark_stage_disk_spill_bytes", "legendFormat": "disk: {{stage_name}} ({{stage_id}})" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] }
+    },
+    {
+      "id": 4,
+      "title": "Task duration skew ratio by stage (max / median)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "spark_stage_task_duration_skew_ratio", "legendFormat": "{{stage_name}} ({{stage_id}})" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "none" }, "overrides": [] }
+    }
+  ]
+}

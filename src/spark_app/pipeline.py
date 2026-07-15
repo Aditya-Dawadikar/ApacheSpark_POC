@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 
 from spark_app.jobs import job_01, job_02, job_03, job_04, job_05, job_06
+from spark_app.observability.tracing import job_span
 
 logger = logging.getLogger(__name__)
 
@@ -26,5 +27,6 @@ PIPELINE = [
 def run_all() -> None:
     for name, job_run in PIPELINE:
         logger.info("=== Starting %s ===", name)
-        job_run()
+        with job_span(name):
+            job_run()
         logger.info("=== Finished %s ===", name)

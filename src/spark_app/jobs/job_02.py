@@ -7,6 +7,7 @@ from pyspark.sql import functions as F
 
 from spark_app.config import settings
 from spark_app.io_utils import read_csv, read_job_output, write_output
+from spark_app.observability.metrics import finalize_spark_session
 from spark_app.session import get_spark_session
 
 logger = logging.getLogger(__name__)
@@ -345,4 +346,4 @@ def run():
 
         logger.info("Job 2 complete: write %d rows to %s", output_count, output_path)
     finally:
-        spark.stop()
+        finalize_spark_session(spark, "job_02")

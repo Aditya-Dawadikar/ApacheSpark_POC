@@ -7,7 +7,8 @@ RUN apt-get update \
 
 ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 \
     PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app/src
+    PYTHONPATH=/app/src \
+    SPARK_CONF_DIR=/app/conf
 
 WORKDIR /app
 
@@ -16,5 +17,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY src/ src/
 COPY data/ data/
+COPY conf/ conf/
 
 ENTRYPOINT ["python", "-m", "spark_app.main"]
